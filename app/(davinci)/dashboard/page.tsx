@@ -15,6 +15,7 @@ import {
   FileText,
   Trash2,
   Eye,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { EVENTS } from "@/lib/mock-data";
@@ -64,11 +65,13 @@ const MY_REGISTRATIONS = [
     eventId: "spring-art-exhibition-2025",
     attendeeCount: 2,
     registeredOn: "December 20, 2024",
+    dietaryRestrictions: "Vegetarian" as string | null,
   },
   {
     eventId: "watercolor-workshop-emma",
     attendeeCount: 1,
     registeredOn: "December 18, 2024",
+    dietaryRestrictions: null as string | null,
   },
 ];
 
@@ -85,6 +88,7 @@ function fmt(n: number) {
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"orders" | "events">("orders");
   const [eventFilter, setEventFilter] = useState("All Events");
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const myEvents = REGISTERED_EVENT_IDS
     .map((eid) => {
@@ -109,6 +113,7 @@ export default function DashboardPage() {
   const inProgressCount = MOCK_ORDERS.filter((o) => o.status !== "Delivered").length;
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: "#faf9f7" }}>
       <div className="max-w-[1280px] mx-auto px-4 py-10">
 
@@ -286,10 +291,13 @@ export default function DashboardPage() {
                             {fmt(order.total)}
                           </p>
                         </div>
-                        <button className="inline-flex items-center gap-2 bg-dv-accent text-white text-[13px] font-medium px-4 h-9 rounded-full hover:opacity-90 transition-opacity">
+                        <Link
+                          href={`/invoice/${order.id}`}
+                          className="inline-flex items-center gap-2 bg-dv-accent text-white text-[13px] font-medium px-4 h-9 rounded-full hover:opacity-90 transition-opacity"
+                        >
                           <FileText className="w-3.5 h-3.5" />
                           View Invoice
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   ))}
@@ -415,13 +423,13 @@ export default function DashboardPage() {
 
                           {/* Actions */}
                           <div className="flex items-center gap-2 mt-auto pt-2">
-                            <Link
-                              href={`/events/${event.id}`}
+                            <button
+                              onClick={() => setSelectedEventId(event.id)}
                               className="flex-1 inline-flex items-center justify-center gap-1.5 border border-black/15 rounded-full h-8 text-[12px] text-dv-text hover:border-dv-accent hover:text-dv-accent transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               View Details
-                            </Link>
+                            </button>
                             <button
                               className="w-8 h-8 rounded-full border border-red-200 flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
                               aria-label="Cancel registration"
@@ -446,5 +454,121 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+
+    {/* ── REGISTRATION DETAILS MODAL ── */}
+
+    {selectedEventId && (() => {
+      const event = EVENTS.find((e) => e.id === selectedEventId);
+      const reg = MY_REGISTRATIONS.find((r) => r.eventId === selectedEventId);
+      if (!event || !reg) return null;
+      return (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedEventId(null); }}
+        >
+          <div className="bg-white rounded-[24px] w-full max-w-[720px] overflow-hidden max-h-[90vh] overflow-y-auto">
+            {/* Modal header */}
+            <div className="px-6 py-4 flex items-center justify-between border-b border-black/8">
+              <h3 className="font-serif italic text-dv-accent text-[20px]">Registration Details</h3>
+              <button
+                onClick={() => setSelectedEventId(null)}
+                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-dv-muted" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-5">
+              {/* Hero image */}
+              <div className="relative h-[200px] w-full rounded-[14px] overflow-hidden">
+                <Image src={event.image} alt={event.title} fill className="object-cover" />
+              </div>
+
+              {/* Title row */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[20px] font-semibold text-dv-text mb-2">{event.title}</h2>
+                  <span className="text-[12px] font-medium text-dv-accent border border-dv-accent px-3 py-1 rounded-full">
+                    {event.category}
+                  </span>
+                </div>
+                <span className={`text-[12px] font-medium px-3 py-1 rounded-full shrink-0 ${
+                  event.status === "Upcoming" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                }`}>
+                  {event.status === "Upcoming" ? "Upcoming Event" : "Past Event"}
+                </span>
+              </div>
+
+              {/* Info grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-[14px] p-4" style={{ background: "#faf9f7" }}>
+                  <h4 className="text-[14px] font-semibold text-dv-text mb-3">Event Information</h4>
+                  <div className="flex flex-col gap-2.5 text-[13px]">
+                    <span className="flex items-center gap-2 text-dv-muted">
+                      <Calendar className="w-3.5 h-3.5 text-dv-accent shrink-0" />
+                      {event.isoDate}
+                    </span>
+                    <span className="flex items-center gap-2 text-dv-muted">
+                      <Clock className="w-3.5 h-3.5 text-dv-accent shrink-0" />
+                      {event.time}
+                    </span>
+                    <span className="flex items-center gap-2 text-dv-muted">
+                      <MapPin className="w-3.5 h-3.5 text-dv-accent shrink-0" />
+                      {event.location}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-[14px] p-4" style={{ background: "#faf9f7" }}>
+                  <h4 className="text-[14px] font-semibold text-dv-text mb-3">Your Registration</h4>
+                  <div className="flex flex-col gap-2 text-[13px]">
+                    {[
+                      { label: "Name:", value: MOCK_USER.name },
+                      { label: "Email:", value: MOCK_USER.email },
+                      { label: "Phone:", value: MOCK_USER.phone },
+                      { label: "Attendees:", value: String(reg.attendeeCount) },
+                    ].map(({ label, value }) => (
+                      <div key={label}>
+                        <p className="text-dv-muted text-[11px]">{label}</p>
+                        <p className="text-dv-text font-medium">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dietary info */}
+              {reg.dietaryRestrictions && (
+                <div>
+                  <h4 className="text-[14px] font-semibold text-dv-text mb-2">Additional Information</h4>
+                  <p className="text-[12px] text-dv-accent">Dietary Restrictions:</p>
+                  <p className="text-[14px] text-dv-text">{reg.dietaryRestrictions}</p>
+                </div>
+              )}
+
+              {/* About */}
+              <div>
+                <h4 className="text-[14px] font-semibold text-dv-text mb-1">About This Event</h4>
+                <p className="text-[13px] text-dv-muted leading-relaxed">{event.description}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2 border-t border-black/8">
+                <button
+                  onClick={() => setSelectedEventId(null)}
+                  className="flex-1 h-10 rounded-full border border-black/15 text-[14px] text-dv-text hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button className="flex-1 h-10 rounded-full bg-red-600 text-white text-[14px] font-medium hover:opacity-90 transition-opacity">
+                  Cancel Registration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+    </>
   );
 }
